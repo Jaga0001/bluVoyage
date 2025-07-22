@@ -1,5 +1,8 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+import os
+import uvicorn
+
 from planner import generate_structured_itinerary, parse_user_input_with_ai
 
 app = FastAPI(
@@ -27,7 +30,6 @@ async def generate_itinerary(request: ItineraryRequest):
             "error": str(e),
             "message": "Failed to generate itinerary"
         }
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

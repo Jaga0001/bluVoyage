@@ -19,259 +19,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<Color?> _backgroundAnimation;
 
-  // Sample travel plan with proper JSON structure
-  List<TravelPlan> travelPlans = [
-    TravelPlan(
-      id: '1',
-      title: 'Chennai Pop Culture & Street Style',
-      destination: 'Chennai, India',
-      duration: '2 days',
-      summary: '2-day cultural itinerary for Chennai',
-      travel_image: 'https://picsum.photos/1200/800?random=768',
-      itinerary: TravelItinerary(
-        destination: "Chennai",
-        duration_days: 2,
-        days: [
-          TravelDay(
-            day_number: 1,
-            theme: "Modern Chennai & Pop Culture Buzz",
-            activities: [
-              Activity(
-                time: "09:30",
-                location: Location(
-                  name: "Namma Veedu Vasanta Bhavan",
-                  address:
-                      "2nd Floor, Phoenix Market City, S36, Velachery Rd, Indira Gandhi Nagar, Velachery, Chennai, Tamil Nadu 600042, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJN8C5NmJnUjoRYnX2KEB0Tjg",
-                ),
-                category: "dining",
-                description:
-                    "Start your day with an authentic yet accessible South Indian breakfast experience. Saravana Bhavan is a globally recognized chain, popular for its consistent quality and a great way to dive into local flavors in a comfortable, modern mall setting.",
-                culturalConnection:
-                    "A staple of South Indian cuisine, offering a taste of local food loved by all generations, including the youth, in a familiar and convenient environment.",
-                category_icon: "🍽️",
-              ),
-              Activity(
-                time: "10:30",
-                location: Location(
-                  name: "Phoenix Marketcity",
-                  address:
-                      "Velachery Rd, Indira Gandhi Nagar, Velachery, Chennai, Tamil Nadu 600042, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJ62COtGNnUjoRUcI2kAApOts",
-                ),
-                category: "fashion",
-                description:
-                    "Explore Chennai's premier shopping destination. Phoenix Marketcity hosts a wide array of international and Indian brands, perfect for finding casual streetwear and trendy pieces. Look for stores like H&M, Zara, Lifestyle, and Westside for the latest styles.",
-                culturalConnection:
-                    "A hub for contemporary fashion trends, reflecting global and local youth styles. Ideal for 'casual streetwear' preferences due to its diverse range of modern brands.",
-                category_icon: "👗",
-              ),
-              Activity(
-                time: "13:00",
-                location: Location(
-                  name: "Inox LUXE Phoenix Market City",
-                  address:
-                      "2nd Floor, Phoenix Market City, No. 142, Velachery Rd, Indira Gandhi Nagar, Velachery, Chennai, Tamil Nadu 600042, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJfZlKS6dnUjoRPpu9BJGcfaI",
-                ),
-                category: "film",
-                description:
-                    "Catch a matinee show at one of Chennai's most luxurious multiplexes. PVR Luxe offers a premium cinema experience, perfect for enjoying the latest popular movies, be it Kollywood, Bollywood, or Hollywood blockbusters, in ultimate comfort.",
-                culturalConnection:
-                    "Chennai has a vibrant film culture deeply ingrained in its identity. This modern cinema experience aligns perfectly with a 'popular movies' preference, offering a comfortable and immersive viewing.",
-                category_icon: "🎬",
-              ),
-              Activity(
-                time: "16:00",
-                location: Location(
-                  name: "Wild Gardencafe",
-                  address:
-                      "Amethyst, near, Whites Rd, next to Union Bank, Express Estate, Royapettah, Chennai, Tamil Nadu 600014, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJc2w3PbxlBRERbGTUaw6mtXU",
-                ),
-                category: "music",
-                description:
-                    "Relax at this beautiful, trendy cafe nestled in a lush garden. Amethyst is known for its serene ambiance, curated boutique, and often plays contemporary, chill-pop music, making it a perfect spot to unwind and soak in a sophisticated, youthful vibe.",
-                culturalConnection:
-                    "While not a dedicated 'pop music venue', Amethyst's chic atmosphere, popularity with youth, and modern music selection (often chill pop/indie) align with a 'pop music' taste, providing a stylish place to enjoy contemporary sounds.",
-                category_icon: "🎵",
-              ),
-              Activity(
-                time: "17:30",
-                location: Location(
-                  name: "Amethyst",
-                  address:
-                      "No 239, Whites Rd, next to Corporation BankRoyapettah, Express Estate, Royapettah, Chennai, Tamil Nadu 600014, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJtRcPTT1mUjoRUVgc-CcQgnU",
-                ),
-                category: "fashion",
-                description:
-                    "Wander around the stylish streets near Amethyst and Chamiers Road. This area is home to several independent boutiques and design stores offering unique fashion finds that lean towards contemporary and fusion casual wear, distinct from mall brands.",
-                culturalConnection:
-                    "A discovery zone for unique casual streetwear, reflecting an evolving sense of modern Chennai style beyond mainstream retail and catering to individual expression.",
-                category_icon: "👗",
-              ),
-              Activity(
-                time: "19:30",
-                location: Location(
-                  name: "Drizzle By The Beach",
-                  address:
-                      "Part Ill 69, 2nd Main Rd, VGP Layout, Palavakkam, Chennai, Tamil Nadu 600041, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJp6lo3D1dUjoRz7x7FuP2tpE",
-                ),
-                category: "dining",
-                description:
-                    "Enjoy a relaxed dinner with a trendy, beachside vibe. Drizzle By The Beach offers a multi-cuisine menu in a contemporary setting, popular among younger crowds for its ambiance and 'escape-from-the-city' feel.",
-                culturalConnection:
-                    "Offers a relaxed, modern dining experience popular with youth, reflecting Chennai's coastal identity and its emerging casual fine dining scene.",
-                category_icon: "🍽️",
-              ),
-              Activity(
-                time: "21:00",
-                location: Location(
-                  name: "Broken Bridge",
-                  address:
-                      "277G+HFP Broken Bridge Part, Theosophical Society, Adyar, Chennai, Tamil Nadu 600090, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJeeReOwBnUjoRR_bwrO9mWN8",
-                ),
-                category: "hidden_gem",
-                description:
-                    "Experience a unique, slightly eerie but captivating spot popular with locals for its picturesque views, especially at sunset or night. The ruins of a bridge over the Adyar Estuary offer a surreal backdrop and are a favorite for photography and quiet reflection.",
-                culturalConnection:
-                    "A lesser-known, intriguing landmark that provides a unique photo opportunity and a sense of discovery, reflecting Chennai's urban history and natural beauty, particularly appealing to adventurous youth.",
-                category_icon: "💎",
-              ),
-            ],
-          ),
-          TravelDay(
-            day_number: 2,
-            theme: "Artsy Enclaves & Coastal Chill",
-            activities: [
-              Activity(
-                time: "09:00",
-                location: Location(
-                  name: "Madras Coffee House",
-                  address:
-                      "7, 6th Avenue, GOCHS Colony, Besant Nagar, Chennai, Tamil Nadu 600090, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJKxlIxIVnUjoRujarAv95EsM",
-                ),
-                category: "dining",
-                description:
-                    "Start your day with filter coffee and a light breakfast at a lively local chain. This branch, close to the beach, offers a casual setting popular with students and locals, serving traditional South Indian snacks.",
-                culturalConnection:
-                    "Experience the quintessential Chennai filter coffee culture in a vibrant, youth-friendly setting, blending local tradition with urban energy and a relaxed morning vibe.",
-                category_icon: "🍽️",
-              ),
-              Activity(
-                time: "10:00",
-                location: Location(
-                  name: "Apparao Galleries",
-                  address:
-                      "No. 7, Wallace Gardens 3rd Street, Nungambakkam, Chennai, Tamil Nadu 600006, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJsZlSNGpmUjoRg84DQbTDSao",
-                ),
-                category: "film",
-                description:
-                    "Explore contemporary Indian art at Apparao Galleries, one of Chennai's well-regarded art spaces. They showcase a diverse range of modern artworks, often with themes relevant to current societal narratives and modern expressions.",
-                culturalConnection:
-                    "While primarily an art gallery, art and film are often intertwined as visual storytelling. Visiting a contemporary art space broadens the 'cultural spots' preference, offering a glimpse into modern Indian artistic expressions relevant to current trends.",
-                category_icon: "🎬",
-              ),
-              Activity(
-                time: "12:00",
-                location: Location(
-                  name: "Elliots Fashions",
-                  address:
-                      "16, 4th Main Rd, Besant Nagar, Chennai, Tamil Nadu 600090, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJUbboZvtnUjoR9L0O0_jO46Y",
-                ),
-                category: "fashion",
-                description:
-                    "Stroll along the lively streets of Besant Nagar, especially around Elliot's Beach. This area is dotted with independent boutiques and quirky stores offering unique, casual, and bohemian streetwear that stands out from mall brands.",
-                culturalConnection:
-                    "A hotspot for relaxed, individualistic 'casual streetwear' and boutique finds, reflecting a laid-back, artsy side of Chennai's youth culture and a different fashion aesthetic.",
-                category_icon: "👗",
-              ),
-              Activity(
-                time: "13:30",
-                location: Location(
-                  name: "East Coast at Madras Square",
-                  address:
-                      "2/520, Sandeep Avenue, Sakthimoorthiamman Nagar, Neelankarai, Chennai, Tamil Nadu 600041, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJK_xmSSNdUjoR2_ectfhzvbU",
-                ),
-                category: "dining",
-                description:
-                    "Enjoy lunch at this popular cafe and restaurant with a relaxed, artsy vibe. It offers a mix of continental and Indian dishes in a charming setting, making it a popular spot for young crowds.",
-                culturalConnection:
-                    "A contemporary dining experience that blends diverse culinary tastes with a relaxed, youthful ambiance, perfect for a casual lunch after exploring the area.",
-                category_icon: "🍽️",
-              ),
-              Activity(
-                time: "15:00",
-                location: Location(
-                  name: "Elliot's Promenade",
-                  address:
-                      "Elliot's Promenade, Besant Nagar, Chennai, Tamil Nadu 600090, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJzzDvfvxnUjoRgtDJb9MsHNQ",
-                ),
-                category: "music",
-                description:
-                    "Immerse yourself in the vibrant atmosphere of Elliot's Beach. While not a specific music venue, the promenade is a hub of activity where young people gather. You'll hear ambient music from nearby cafes, buskers, and local tunes from street vendors, creating an impromptu urban soundscape.",
-                culturalConnection:
-                    "Connects with the 'pop music' preference by offering a place where modern sounds are part of the lively, youthful urban environment, a true cultural spot where local youth hang out and modern culture unfolds.",
-                category_icon: "🎵",
-              ),
-              Activity(
-                time: "17:00",
-                location: Location(
-                  name: "DakshinaChitra Heritage Museum",
-                  address:
-                      "R6FR+4M4 DakshinaChitra Heritage Museum, SH 49, Muthukadu, Tamil Nadu 603112, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJU6kGOI5aUjoRmbAbB95gFcs",
-                ),
-                category: "hidden_gem",
-                description:
-                    "Take a short trip down ECR to DakshinaChitra, an open-air museum showcasing the living traditions, architecture, and crafts of South Indian states. It's a beautifully curated space offering a deeper dive into regional culture in an engaging and accessible way.",
-                culturalConnection:
-                    "A truly unique cultural experience, providing insight into the diverse heritage of South India in an interactive and visually appealing manner, moving beyond typical tourist spots for a richer cultural understanding.",
-                category_icon: "💎",
-              ),
-              Activity(
-                time: "20:00",
-                location: Location(
-                  name: "Sofa Brown",
-                  address:
-                      "Ground Floor, Hafiz Court, 19, Kodambakkam High Rd, Tirumurthy Nagar, Nungambakkam, Chennai, Tamil Nadu 600034, India",
-                  maps_link:
-                      "https://www.google.com/maps/place/?q=place_id:ChIJyc8aiXVnUjoRZOMZZEsnCDE",
-                ),
-                category: "dining",
-                description:
-                    "Conclude your trip with dinner at Sofa Brown, a chic and modern lounge-restaurant known for its good food, relaxed ambiance, and often lively music. It's a favorite among Chennai's younger crowd for a sophisticated yet casual night out.",
-                culturalConnection:
-                    "A trendy spot that resonates with youth, offering a modern dining experience that combines good food with a cool, contemporary vibe, aligning with a 'pop culture' sensibility and a great way to end your trip.",
-                category_icon: "🍽️",
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  ];
+  // Remove sample travel plan and use empty list
+  List<TravelPlan> travelPlans = [];
 
   @override
   void initState() {
@@ -975,64 +724,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Image.network(
-                    plan.travel_image,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
-                          ),
-                        ),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
-                          ),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 48,
-                                color: Colors.white,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Image not available',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child: _buildPlanImage(plan.travel_image),
                 ),
               ),
             ),
@@ -1082,10 +774,76 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _navigateToPromptPage() {
-    Navigator.push(
+  Widget _buildPlanImage(String imageUrl) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
+              ),
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
+              ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_on, size: 48, color: Colors.white),
+                  SizedBox(height: 8),
+                  Text(
+                    'Travel Plan',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _navigateToPromptPage() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => PromptScreen()),
     );
+
+    if (result != null && result is TravelPlan) {
+      setState(() {
+        travelPlans.add(result);
+      });
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/apis/api_func.dart';
 import 'dart:math' as math;
 
 class PromptScreen extends StatefulWidget {
@@ -21,6 +22,8 @@ class _PromptScreenState extends State<PromptScreen>
 
   // Single form controller for the prompt
   final TextEditingController _promptController = TextEditingController();
+  final ApiFunc _apiFunc = ApiFunc();
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -364,29 +367,52 @@ class _PromptScreenState extends State<PromptScreen>
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _generateTravelPlan,
+          onPressed: _isGenerating ? null : _generateTravelPlan,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF3B82F6),
+            backgroundColor: _isGenerating ? Colors.grey : Color(0xFF3B82F6),
             padding: EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 4,
           ),
-          child: Text(
-            'Generate My Travel Plan',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
+          child: _isGenerating
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Generating...',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Generate My Travel Plan',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
   }
 
-  void _generateTravelPlan() {
+  void _generateTravelPlan() async {
     // Validate prompt field
     if (_promptController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -401,6 +427,10 @@ class _PromptScreenState extends State<PromptScreen>
       );
       return;
     }
+
+    setState(() {
+      _isGenerating = true;
+    });
 
     // Show loading dialog
     showDialog(
@@ -422,27 +452,82 @@ class _PromptScreenState extends State<PromptScreen>
               ),
               textAlign: TextAlign.center,
             ),
+            SizedBox(height: 10),
+            Text(
+              'This may take a few moments',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
 
-    // Simulate API call
-    Future.delayed(Duration(seconds: 3), () {
-      Navigator.of(context).pop(); // Close loading dialog
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Travel plan generated successfully!'),
-          backgroundColor: Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+    try {
+      final travelPlan = await _apiFunc.generateItinerary(
+        _promptController.text.trim(),
       );
 
-      Navigator.of(context).pop(); // Go back to home screen
-    });
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        if (travelPlan != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Travel plan generated successfully!'),
+              backgroundColor: Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+
+          // Return the generated travel plan to the home screen
+          Navigator.of(context).pop(travelPlan);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Unable to connect to our servers. Please check your internet connection and try again.',
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error in _generateTravelPlan: $e');
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Network error. Please check your connection and try again.',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
   }
 }
