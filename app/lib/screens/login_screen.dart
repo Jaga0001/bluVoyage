@@ -1,3 +1,4 @@
+import 'package:app/auth/google_auth.dart';
 import 'package:app/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -383,13 +384,27 @@ class _LoginScreenState extends State<LoginScreen>
                                                   ),
                                                   onPressed: () {
                                                     // TODO: Add Google sign-in logic
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            HomeScreen(),
-                                                      ),
-                                                    );
+                                                    signInWithGoogle()
+                                                        .then((userCredential) {
+                                                          Navigator.pushReplacement(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (context) =>
+                                                                  HomeScreen(),
+                                                            ),
+                                                          );
+                                                        })
+                                                        .catchError((error) {
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          ).showSnackBar(
+                                                            SnackBar(
+                                                              content: Text(
+                                                                'Sign-in failed: $error',
+                                                              ),
+                                                            ),
+                                                          );
+                                                        });
                                                   },
                                                 ),
                                               ),
