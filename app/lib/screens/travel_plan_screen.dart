@@ -196,6 +196,24 @@ class _TravelPlanScreenState extends State<TravelPlanScreen>
   }
 
   Widget _buildDaySidebar() {
+    if (widget.travelPlan.itinerary.days.isEmpty) {
+      return Container(
+        width: 280,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            right: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            'No itinerary data available',
+            style: GoogleFonts.inter(fontSize: 16, color: Colors.grey.shade600),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: 280,
       decoration: BoxDecoration(
@@ -313,6 +331,39 @@ class _TravelPlanScreenState extends State<TravelPlanScreen>
   }
 
   Widget _buildMainContent(bool isLargeScreen) {
+    if (widget.travelPlan.itinerary.days.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.explore_off, size: 64, color: Colors.grey.shade400),
+            SizedBox(height: 16),
+            Text(
+              'No itinerary available',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'The travel plan doesn\'t contain any daily activities.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (selectedDay >= widget.travelPlan.itinerary.days.length) {
+      selectedDay = 0;
+    }
+
     final currentDay = widget.travelPlan.itinerary.days[selectedDay];
 
     return SingleChildScrollView(

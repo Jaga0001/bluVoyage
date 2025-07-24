@@ -35,7 +35,7 @@ class ApiFunc {
       print('Making API request to: $url');
       print('Prompt: $prompt');
 
-      final response = await _dio.post(url, data: {'prompt': prompt});
+      final response = await _dio.post(url, data: {'user_input': prompt});
 
       print('Response status: ${response.statusCode}');
       print('Response data: ${response.data}');
@@ -60,21 +60,26 @@ class ApiFunc {
 
   TravelPlan _parseApiResponse(Map<String, dynamic> data) {
     try {
-      final itineraryData = data['itinerary'] ?? data;
+      // Handle the nested structure: data -> itinerary -> travel_plan
+      final itineraryResponse = data['itinerary'] ?? data;
+      final travelPlanData =
+          itineraryResponse['travel_plan'] ?? itineraryResponse;
 
       return TravelPlan(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: data['title'] ?? 'Custom Travel Plan',
-        destination: itineraryData['destination'] ?? 'Unknown',
-        duration: '${itineraryData['duration_days'] ?? 1} days',
-        summary: data['summary'] ?? 'Generated travel itinerary',
+        title:
+            data['title'] ??
+            '${travelPlanData['duration_days'] ?? 1}-day cultural itinerary for ${travelPlanData['destination'] ?? 'Unknown'}',
+        destination: travelPlanData['destination'] ?? 'Unknown',
+        duration: '${travelPlanData['duration_days'] ?? 1} days',
+        summary: travelPlanData['summary'] ?? 'Generated travel itinerary',
         travel_image:
-            data['travel_image'] ??
+            travelPlanData['travel_image'] ??
             'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop',
         itinerary: TravelItinerary(
-          destination: itineraryData['destination'] ?? 'Unknown',
-          duration_days: itineraryData['duration_days'] ?? 1,
-          days: (itineraryData['days'] as List<dynamic>? ?? [])
+          destination: travelPlanData['destination'] ?? 'Unknown',
+          duration_days: travelPlanData['duration_days'] ?? 1,
+          days: (travelPlanData['days'] as List<dynamic>? ?? [])
               .map(
                 (dayData) => TravelDay(
                   day_number: dayData['day_number'] ?? 1,
@@ -94,8 +99,8 @@ class ApiFunc {
                           category: activityData['category'] ?? 'general',
                           description: activityData['description'] ?? '',
                           culturalConnection:
-                              activityData['culturalConnection'] ??
                               activityData['cultural_connection'] ??
+                              activityData['culturalConnection'] ??
                               '',
                           category_icon: activityData['category_icon'] ?? '📍',
                         ),
