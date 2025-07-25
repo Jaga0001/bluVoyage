@@ -2,6 +2,7 @@ import 'package:app/models/travel_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
+import 'package:url_launcher/url_launcher.dart';
 
 class TravelPlanScreen extends StatefulWidget {
   final TravelPlan travelPlan;
@@ -462,6 +463,50 @@ class _TravelPlanScreenState extends State<TravelPlanScreen>
     );
   }
 
+  // Add this method for handling maps navigation
+  Future<void> _openMapsLocation(String mapsLink) async {
+    if (mapsLink.isNotEmpty) {
+      final Uri url = Uri.parse(mapsLink);
+      try {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Could not open maps location',
+                  style: GoogleFonts.inter(color: Colors.white),
+                ),
+                backgroundColor: Colors.red.shade600,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Error opening maps: ${e.toString()}',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildActivityCard(
     Activity activity,
     bool isLast,
@@ -574,40 +619,101 @@ class _TravelPlanScreenState extends State<TravelPlanScreen>
 
                   SizedBox(height: 16),
 
-                  // Location
-                  Text(
-                    activity.location.name,
-                    style: GoogleFonts.inter(
-                      fontSize: isLargeScreen ? 20 : 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E40AF),
-                    ),
-                  ),
-
-                  if (activity.location.address.isNotEmpty) ...[
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                        SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            activity.location.address,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
+                  // Location with Maps Button
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.location.name,
+                              style: GoogleFonts.inter(
+                                fontSize: isLargeScreen ? 20 : 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E40AF),
+                              ),
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            if (activity.location.address.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    size: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      activity.location.address,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (activity.location.maps_link.isNotEmpty) ...[
+                        SizedBox(width: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF4285F4), Color(0xFF1E40AF)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF4285F4).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => _openMapsLocation(
+                                activity.location.maps_link,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.map,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'View on Maps',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
 
                   SizedBox(height: 12),
 

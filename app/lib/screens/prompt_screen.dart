@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/apis/api_func.dart';
+import 'package:app/db/db_func.dart';
 import 'dart:math' as math;
 
 class PromptScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _PromptScreenState extends State<PromptScreen>
   // Single form controller for the prompt
   final TextEditingController _promptController = TextEditingController();
   final ApiFunc _apiFunc = ApiFunc();
+  final DbFunc _dbFunc = DbFunc();
   bool _isGenerating = false;
 
   @override
@@ -228,14 +230,9 @@ class _PromptScreenState extends State<PromptScreen>
             Icons.edit_outlined,
           ),
 
-          SizedBox(height: 40),
-
-          // Example sentences
-          _buildExampleSection(),
-
           SizedBox(height: 32),
 
-          // Prompt Field
+          // Prompt Field - moved up to be first
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -264,22 +261,29 @@ class _PromptScreenState extends State<PromptScreen>
               style: GoogleFonts.inter(fontSize: 16, height: 1.5),
             ),
           ),
+
+          SizedBox(height: 32),
+
+          // Example sentences as clickable buttons
+          _buildExampleButtonsSection(),
         ],
       ),
     );
   }
 
-  Widget _buildExampleSection() {
+  Widget _buildExampleButtonsSection() {
     final examples = [
-      "I want to go to chennai for 3 days I love Frank Ocean, Studio Ghibli films, and Japanese streetwear.",
+      "I want to go to Chennai for 3 days I love Frank Ocean, Studio Ghibli films, and Japanese streetwear.",
       "My vibe is Taylor Swift, classic romantic films, and matcha desserts.",
+      "I want a relaxing beach vacation with seafood and water activities.",
+      "Plan a cultural tour in Kyoto with traditional experiences.",
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Examples:',
+          'Try these examples:',
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -289,21 +293,35 @@ class _PromptScreenState extends State<PromptScreen>
         SizedBox(height: 16),
         ...examples
             .map(
-              (example) => Container(
-                margin: EdgeInsets.only(bottom: 12),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFF3B82F6).withOpacity(0.2)),
-                ),
-                child: Text(
-                  example,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    fontStyle: FontStyle.italic,
-                    height: 1.4,
+              (example) => GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _promptController.text = example;
+                  });
+                },
+                child: Container(
+                  margin: EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Color(0xFF3B82F6).withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          example,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.grey.shade700,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -432,38 +450,11 @@ class _PromptScreenState extends State<PromptScreen>
       _isGenerating = true;
     });
 
-    // Show loading dialog
+    // Show beautiful loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Color(0xFF3B82F6)),
-            SizedBox(height: 20),
-            Text(
-              'Generating your perfect travel plan...',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E40AF),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 10),
-            Text(
-              'This may take a few moments',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      builder: (context) => _buildBeautifulLoadingDialog(),
     );
 
     try {
@@ -475,19 +466,37 @@ class _PromptScreenState extends State<PromptScreen>
         Navigator.of(context).pop(); // Close loading dialog
 
         if (travelPlan != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Travel plan generated successfully!'),
-              backgroundColor: Color(0xFF10B981),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          // Save to Firestore
+          bool saved = await _dbFunc.saveTravelPlan(travelPlan);
 
-          // Return the generated travel plan to the home screen
-          Navigator.of(context).pop(travelPlan);
+          if (saved) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Travel plan generated and saved successfully!'),
+                backgroundColor: Color(0xFF10B981),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+
+            // Return the generated travel plan to the home screen
+            Navigator.of(context).pop(travelPlan);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Travel plan generated but failed to save. Please try again.',
+                ),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -529,5 +538,310 @@ class _PromptScreenState extends State<PromptScreen>
         });
       }
     }
+  }
+
+  Widget _buildBeautifulLoadingDialog() {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: _BeautifulLoadingWidget(),
+    );
+  }
+}
+
+class _BeautifulLoadingWidget extends StatefulWidget {
+  @override
+  _BeautifulLoadingWidgetState createState() => _BeautifulLoadingWidgetState();
+}
+
+class _BeautifulLoadingWidgetState extends State<_BeautifulLoadingWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _rotationController;
+  late AnimationController _pulseController;
+  late AnimationController _fadeController;
+  late AnimationController _particleController;
+
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _rotationController = AnimationController(
+      duration: Duration(seconds: 4),
+      vsync: this,
+    )..repeat();
+
+    _pulseController = AnimationController(
+      duration: Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _fadeController = AnimationController(
+      duration: Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _particleController = AnimationController(
+      duration: Duration(seconds: 6),
+      vsync: this,
+    )..repeat();
+
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    );
+
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    _pulseController.dispose();
+    _fadeController.dispose();
+    _particleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.7;
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 280, maxHeight: maxHeight),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF3B82F6).withOpacity(0.15),
+                  blurRadius: 40,
+                  offset: Offset(0, 20),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Floating particles (limit to 5 for better performance)
+                ...List.generate(5, (index) => _buildFloatingParticle(index)),
+
+                // Main content
+                Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 10),
+
+                      // Main loading ring with icon
+                      _buildMainLoadingRing(),
+
+                      SizedBox(height: 24),
+
+                      // Loading text with animation
+                      _buildLoadingText(),
+
+                      SizedBox(height: 8),
+
+                      // Subtitle
+                      _buildSubtitle(),
+
+                      SizedBox(height: 16),
+
+                      // Progress dots
+                      _buildProgressDots(),
+
+                      SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingParticle(int index) {
+    return AnimatedBuilder(
+      animation: _particleController,
+      builder: (context, child) {
+        final progress = (_particleController.value + index * 0.125) % 1.0;
+        final size = 4.0 + (index % 3) * 2.0;
+        final opacity = 0.3 + (index % 4) * 0.1;
+        final radius = 80.0 + (index % 3) * 20.0;
+        final angle = (index * math.pi / 4) + (progress * 2 * math.pi);
+
+        return Positioned(
+          left: 140 + math.cos(angle) * radius,
+          top: 160 + math.sin(angle) * radius,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  Color(0xFF3B82F6).withOpacity(opacity),
+                  Color(0xFF8B5CF6).withOpacity(opacity * 0.5),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMainLoadingRing() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Outer rotating ring
+        AnimatedBuilder(
+          animation: _rotationAnimation,
+          builder: (context, child) => Transform.rotate(
+            angle: _rotationAnimation.value,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: SweepGradient(
+                  colors: [
+                    Colors.transparent,
+                    Color(0xFF3B82F6).withOpacity(0.8),
+                    Color(0xFF8B5CF6).withOpacity(0.9),
+                    Color(0xFFEC4899).withOpacity(0.8),
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Inner pulsing circle with icon
+        AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) => Transform.scale(
+            scale: _pulseAnimation.value,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF3B82F6).withOpacity(0.25),
+                    blurRadius: 25,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.flight_takeoff,
+                size: 36,
+                color: Color(0xFF3B82F6),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingText() {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) => Transform.scale(
+        scale: 0.98 + (_pulseAnimation.value - 1) * 0.02,
+        child: Text(
+          'Crafting Your Dream Journey',
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1E293B),
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubtitle() {
+    return Text(
+      'Our AI is curating the perfect\nexperiences just for you',
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: Color(0xFF64748B),
+        height: 1.5,
+        fontWeight: FontWeight.w500,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildProgressDots() {
+    return AnimatedBuilder(
+      animation: _rotationController,
+      builder: (context, child) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(4, (index) {
+            final progress =
+                (_rotationController.value * 2 + index * 0.25) % 1.0;
+            final opacity = (math.sin(progress * math.pi) * 0.5 + 0.5);
+            final scale = 0.6 + (opacity * 0.4);
+
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 3),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF3B82F6).withOpacity(opacity),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 }

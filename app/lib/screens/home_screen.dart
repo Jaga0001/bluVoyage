@@ -1,6 +1,7 @@
 import 'package:app/models/travel_model.dart';
 import 'package:app/screens/travel_plan_screen.dart';
 import 'package:app/screens/prompt_screen.dart';
+import 'package:app/db/db_func.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -21,6 +22,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Remove sample travel plan and use empty list
   List<TravelPlan> travelPlans = [];
+  final DbFunc _dbFunc = DbFunc();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -51,6 +54,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
 
     _fadeController.forward();
+    _loadTravelPlans();
+  }
+
+  // Load travel plans from Firestore
+  Future<void> _loadTravelPlans() async {
+    try {
+      final plans = await _dbFunc.getTravelPlans();
+      if (mounted) {
+        setState(() {
+          travelPlans = plans;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading travel plans: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -146,7 +170,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                                     // Travel Plans Section
                                     Expanded(
-                                      child: travelPlans.isEmpty
+                                      child: _isLoading
+                                          ? _buildLoadingState()
+                                          : travelPlans.isEmpty
                                           ? _buildEmptyState(isLargeScreen)
                                           : _buildTravelPlansGrid(
                                               isLargeScreen,
@@ -583,6 +609,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildLoadingState() {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF3B82F6)),
+            SizedBox(height: 24),
+            Text(
+              'Loading your travel plans...',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E40AF),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState(bool isLargeScreen) {
     return Center(
       child: Container(
@@ -841,9 +901,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
 
     if (result != null && result is TravelPlan) {
-      setState(() {
-        travelPlans.add(result);
-      });
+      // Refresh the travel plans list
+      _loadTravelPlans();
     }
   }
 }
