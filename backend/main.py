@@ -1,50 +1,38 @@
-# main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import os
+from planner import generate_itinerary_response
 import uvicorn
-
-from planner import generate_structured_itinerary, parse_user_input_with_ai
+import os
+import time
 
 app = FastAPI(
     title="Cultural Travel Planner API",
-    description="Create personalized cultural itineraries based on user tastes",
-    version="1.0"
+    version="2.0"
 )
 
-# Enable CORS for Flutter Web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, use your Flutter domain instead of "*"
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Request body model
+@app.middleware("http")
+async def add_timing_header(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = round(time.time() - start, 3)
+    response.headers["X-Process-Time"] = str(duration)
+    return response
+
 class ItineraryRequest(BaseModel):
     user_input: str
 
-# Endpoint
 @app.post("/generate-itinerary")
 async def generate_itinerary(request: ItineraryRequest):
-    try:
-        preferences, destination, days = parse_user_input_with_ai(request.user_input)
-        itinerary = generate_structured_itinerary(request.user_input, preferences, destination, days)
-        return {
-            "preferences": preferences,
-            "destination": destination,
-            "days": days,
-            "itinerary": itinerary
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "message": "Failed to generate itinerary"
-        }
+    return await generate_itinerary_response(request.user_input)
 
-# Local run
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 10000)), reload=True)
