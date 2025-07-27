@@ -1,3 +1,4 @@
+import 'package:app/auth/google_auth.dart';
 import 'package:app/models/travel_model.dart';
 import 'package:app/screens/travel_plan_screen.dart';
 import 'package:app/screens/prompt_screen.dart';
@@ -344,45 +345,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     true,
                     () {},
                   ),
-                  _buildSidebarItem(
-                    Icons.map_outlined,
-                    'My Plans',
-                    false,
-                    () {},
-                  ),
-                  _buildSidebarItem(
-                    Icons.favorite_outline,
-                    'Favorites',
-                    false,
-                    () {},
-                  ),
-                  _buildSidebarItem(Icons.history, 'History', false, () {}),
-                  _buildSidebarItem(
-                    Icons.explore_outlined,
-                    'Discover',
-                    false,
-                    () {},
-                  ),
-                  SizedBox(height: 40),
-                  Container(
-                    height: 1,
-                    color: Colors.white.withOpacity(0.2),
-                    margin: EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  SizedBox(height: 20),
-                  _buildSidebarItem(
-                    Icons.settings_outlined,
-                    'Settings',
-                    false,
-                    () {},
-                  ),
-                  _buildSidebarItem(
-                    Icons.help_outline,
-                    'Help & Support',
-                    false,
-                    () {},
-                  ),
-                  _buildSidebarItem(Icons.logout, 'Sign Out', false, () {}),
+
+                  _buildSidebarItem(Icons.logout, 'Sign Out', true, () {
+                    signOutGoogle();
+                  }),
                 ],
               ),
             ),
