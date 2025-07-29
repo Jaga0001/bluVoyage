@@ -1,38 +1,50 @@
-from fastapi import FastAPI, Request
+# main.py
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from planner import generate_itinerary_response
-import uvicorn
 import os
-import time
+import uvicorn
+
+from planner import generate_structured_itinerary, parse_user_input_with_ai
 
 app = FastAPI(
     title="Cultural Travel Planner API",
-    version="2.0"
+    description="Create personalized cultural itineraries based on user tastes",
+    version="1.0"
 )
 
+# Enable CORS for Flutter Web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, use your Flutter domain instead of "*"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.middleware("http")
-async def add_timing_header(request: Request, call_next):
-    start = time.time()
-    response = await call_next(request)
-    duration = round(time.time() - start, 3)
-    response.headers["X-Process-Time"] = str(duration)
-    return response
-
+# Request body model
 class ItineraryRequest(BaseModel):
     user_input: str
 
+# Endpoint
 @app.post("/generate-itinerary")
 async def generate_itinerary(request: ItineraryRequest):
-    return await generate_itinerary_response(request.user_input)
+    try:
+        preferences, destination, days = parse_user_input_with_ai(request.user_input)
+        itinerary = generate_structured_itinerary(request.user_input, preferences, destination, days)
+        return {
+            "preferences": preferences,
+            "destination": destination,
+            "days": days,
+            "itinerary": itinerary
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Failed to generate itinerary"
+        }
 
+# Local run
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 10000)), reload=True)
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
