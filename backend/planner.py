@@ -22,6 +22,9 @@ def get_google_maps_link(location, city):
 
 async def fetch(session, method, url, **kwargs):
     async with session.request(method, url, **kwargs) as response:
+        if response.status != 200:
+            print(f"API Error {response.status}: {await response.text()}")
+            return {}
         return await response.json()
 
 async def get_entity_id(session, name, entity_type):
@@ -29,33 +32,91 @@ async def get_entity_id(session, name, entity_type):
     headers = {"x-api-key": QLOO_API_KEY}
     params = {"query": name, "types": entity_type}
     data = await fetch(session, "GET", url, headers=headers, params=params)
+    
     results = data.get("results", [])
     if results:
-        return results[0].get("entity", {}).get("id") or results[0].get("id")
+        entity = results[0]
+        entity_id = entity.get("entity_id") or entity.get("id") or entity.get("entity", {}).get("id")
+        return entity_id
     return None
 
 async def get_recommendations(session, entity_id, domain):
     if not entity_id:
         return ["No recommendations found"]
-    url = f"https://hackathon.api.qloo.com/recommendations/{domain}"
-    headers = {"x-api-key": QLOO_API_KEY, "Content-Type": "application/json"}
-    payload = {"ids": [entity_id], "count": 5}
-    data = await fetch(session, "POST", url, headers=headers, json=payload)
-    return [r["name"] for r in data.get("recommendations", [])]
+    
+    domain_mappings = {
+        "music": ["music", "artists", "artist"],
+        "movies": ["movies", "films", "film"], 
+        "fashion": ["fashion", "brands", "brand"]
+    }
+    
+    for domain_variant in domain_mappings.get(domain, [domain]):
+        url = f"https://hackathon.api.qloo.com/recommendations/{domain_variant}"
+        headers = {"x-api-key": QLOO_API_KEY, "Content-Type": "application/json"}
+        payload = {"ids": [entity_id], "count": 5}
+        data = await fetch(session, "POST", url, headers=headers, json=payload)
+        
+        recommendations = data.get("recommendations", [])
+        if recommendations:
+            rec_names = [r.get("name", "Unknown") for r in recommendations if r.get("name")]
+            return rec_names
+    
+    return [f"No {domain} recommendations found"]
+
+async def get_entity_with_fallback(session, name, entity_type):
+    """Get entity and extract useful info even if recommendations fail"""
+    url = "https://hackathon.api.qloo.com/search"
+    headers = {"x-api-key": QLOO_API_KEY}
+    params = {"query": name, "types": entity_type}
+    data = await fetch(session, "GET", url, headers=headers, params=params)
+    
+    results = data.get("results", [])
+    if results:
+        entity = results[0]
+        entity_id = entity.get("entity_id") or entity.get("id")
+        entity_name = entity.get("name", name)
+        
+        related_entities = []
+        tags = entity.get("tags", [])
+        for tag in tags[:3]:
+            if tag.get("type") in ["urn:tag:influenced_by:qloo", "urn:tag:genre:qloo"]:
+                tag_name = tag.get("name", "").replace("_", " ").title()
+                if tag_name and tag_name not in related_entities:
+                    related_entities.append(tag_name)
+        
+        return entity_id, entity_name, related_entities
+    
+    return None, name, []
 
 async def gather_preferences(music, movie, fashion):
     async with aiohttp.ClientSession() as session:
-        ids = await asyncio.gather(
-            get_entity_id(session, music, "urn:entity:artist"),
-            get_entity_id(session, movie, "urn:entity:movie"),
-            get_entity_id(session, fashion, "urn:entity:brand"),
+        music_data, movie_data, fashion_data = await asyncio.gather(
+            get_entity_with_fallback(session, music, "urn:entity:artist"),
+            get_entity_with_fallback(session, movie, "urn:entity:movie"),
+            get_entity_with_fallback(session, fashion, "urn:entity:brand"),
         )
-        recs = await asyncio.gather(
-            get_recommendations(session, ids[0], "music"),
-            get_recommendations(session, ids[1], "movies"),
-            get_recommendations(session, ids[2], "fashion"),
-        )
-        return {"music": recs[0], "movie": recs[1], "fashion": recs[2]}
+        
+        music_recs = await get_recommendations(session, music_data[0], "music")
+        movie_recs = await get_recommendations(session, movie_data[0], "movies") 
+        fashion_recs = await get_recommendations(session, fashion_data[0], "fashion")
+        
+        if music_recs == ['No music recommendations found'] and music_data[2]:
+            music_recs = music_data[2][:3]
+            
+        if movie_recs == ['No movies recommendations found'] and movie_data[2]:
+            movie_recs = movie_data[2][:3]
+            
+        if fashion_recs == ['No fashion recommendations found'] and fashion_data[2]:
+            fashion_recs = fashion_data[2][:3]
+
+        if not music_recs or music_recs == ['No music recommendations found']:
+            music_recs = [music_data[1]]
+        if not movie_recs or movie_recs == ['No movies recommendations found']:
+            movie_recs = [movie_data[1]]
+        if not fashion_recs or fashion_recs == ['No fashion recommendations found']:
+            fashion_recs = [fashion_data[1]]
+
+        return {"music": music_recs, "movie": movie_recs, "fashion": fashion_recs}
 
 def parse_user_input(user_input):
     """Extract preferences and destination from user input using AI"""
@@ -65,17 +126,16 @@ Analyze this user input and extract travel parameters in JSON format.
 User input: "{user_input}"
 
 Extract:
-1. Music preference (artist, band, or genre)
-2. Movie/film preference (movie, director, genre, or franchise)  
-3. Fashion/style preference (brand, style, or fashion category)
+1. Music preference (artist, band, or genre) - be specific about artist names
+2. Movie/film preference (movie, director, genre, or franchise) - be specific about movie titles  
+3. Fashion/style preference (brand, style, or fashion category) - be specific about brand names
 4. Destination city
 5. Number of days for the trip
 
 Rules:
-- If any preference category isn't mentioned, use these defaults:
-  - Music: "Pop music"
-  - Movie: "Popular movies"
-  - Fashion: "Casual streetwear"
+- For K-pop, extract specific artist names like "BTS", "BLACKPINK", "TWICE" etc.
+- For Studio Ghibli, extract specific movie titles like "Spirited Away", "My Neighbor Totoro" etc.
+- For minimalist fashion, extract specific brands like "COS", "Uniqlo", "Muji" etc.
 - If destination isn't mentioned, use: "Tokyo"
 - If days aren't mentioned, use: 2
 - Return ONLY valid JSON in this exact format:
@@ -102,15 +162,15 @@ Rules:
         
         data = json.loads(text)
         return (
-            data.get('music', 'Pop music'),
-            data.get('movie', 'Popular movies'), 
-            data.get('fashion', 'Casual streetwear'),
+            data.get('music', 'BTS'),
+            data.get('movie', 'Spirited Away'), 
+            data.get('fashion', 'Uniqlo'),
             data.get('destination', 'Tokyo'),
             int(data.get('days', 2))
         )
     except Exception as e:
         print(f"Input parsing failed: {e}")
-        return "Pop music", "Popular movies", "Casual streetwear", "Tokyo", 2
+        return "BTS", "Spirited Away", "Uniqlo", "Tokyo", 2
 
 def build_prompt(user_input, recs, city="Tokyo", days=2):
     return f"""
@@ -186,23 +246,92 @@ CRITICAL: Every activity MUST have a time field with format "HH:MM". Use real ve
 """
 
 async def generate_itinerary_response(user_input):
-    # Parse user input to extract actual preferences and destination
     music, movie, fashion, city, days = parse_user_input(user_input)
-    
     recs = await gather_preferences(music, movie, fashion)
     prompt = build_prompt(user_input, recs, city, days)
 
-    # Generate Gemini content
     response = model.generate_content(prompt)
     streamed = "".join(part.text for part in response)
 
-    # Extract valid JSON only
     json_match = re.search(r'\{[\s\S]*\}', streamed)
     if json_match:
         try:
             raw_json = json_match.group(0)
             parsed = json.loads(raw_json)
             return await enrich_with_maps(parsed)
+        except Exception as e:
+            return {"error": f"JSON parse failed: {str(e)}", "raw_response": raw_json}
+    else:
+        return {"error": "No valid JSON found", "raw_response": streamed[:300]}
+
+async def enrich_with_maps(parsed_data):
+    itinerary = parsed_data.get("itinerary", {})
+    city = itinerary.get("destination", "Tokyo")
+    duration = itinerary.get("duration", 1)
+    image_url = f"https://picsum.photos/seed/{city}/1200/800"
+
+    response = {
+        "status": "success",
+        "travel_plan": {
+            "destination": city,
+            "duration_days": duration,
+            "summary": f"{duration}-day cultural itinerary for {city}",
+            "travel_image": image_url,
+            "days": []
+        }
+    }
+
+    default_times = ["09:00", "11:30", "13:00", "14:30", "16:30", "19:00"]
+
+    for day in itinerary.get("days", []):
+        activities = []
+        day_activities = day.get("activities", day.get("items", []))
+        
+        for i, act in enumerate(day_activities):
+            location = act.get("location") or act.get("name", "Unknown")
+            time = act.get("time")
+            if not time or time == "TBD":
+                time = default_times[i] if i < len(default_times) else f"{9 + i * 2}:00"
+            
+            activities.append({
+                "time": time,
+                "location": {
+                    "name": location,
+                    "maps_link": get_google_maps_link(location, city),
+                    "address": f"{location}, {city}"
+                },
+                "category": act.get("category", "general"),
+                "description": act.get("description", act.get("name", "")),
+                "cultural_connection": act.get("cultural_connection", ""),
+                "category_icon": {
+                    "music": "🎵", "film": "🎬", "fashion": "👗",
+                    "dining": "🍽️", "hidden_gem": "💎"
+                }.get(act.get("category", ""), "📍")
+            })
+        response["travel_plan"]["days"].append({
+            "day_number": day.get("day", 1),
+            "theme": day.get("theme", "Cultural day"),
+            "activities": activities
+        })
+    return response
+    # Extract valid JSON only
+    json_match = re.search(r'\{[\s\S]*\}', streamed)
+    if json_match:
+        try:
+            raw_json = json_match.group(0)
+            parsed = json.loads(raw_json)
+            final_response = await enrich_with_maps(parsed)
+            
+            print(f"\n=== FINAL RESPONSE CHECK ===")
+            print(f"Cultural connections in first activity:")
+            if final_response.get("travel_plan", {}).get("days"):
+                first_day = final_response["travel_plan"]["days"][0]
+                if first_day.get("activities"):
+                    first_activity = first_day["activities"][0]
+                    print(f"Connection: {first_activity.get('cultural_connection', 'None found')}")
+            print("=============================\n")
+            
+            return final_response
         except Exception as e:
             return {"error": f"JSON parse failed: {str(e)}", "raw_response": raw_json}
     else:
@@ -259,4 +388,5 @@ async def enrich_with_maps(parsed_data):
             "theme": day.get("theme", "Cultural day"),
             "activities": activities
         })
+    return response
     return response
