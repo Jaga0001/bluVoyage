@@ -238,13 +238,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] **AR Features**: Augmented reality city guides
 - [ ] **Social Features**: Share experiences and reviews
 
-## 🏆 Hackathon Context
-
-This project was developed for the **QLOO Hackathon**, showcasing the integration of:
-- QLOO's cultural recommendation API
-- AI-powered content generation
-- Modern mobile development practices
-- Cloud-native architecture
 
 ## 📞 Support
 

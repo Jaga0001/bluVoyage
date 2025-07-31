@@ -11,12 +11,60 @@ load_dotenv()
 
 QLOO_API_KEY = os.getenv("QLOO_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_API_KEY
 
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
+async def get_place_details(session, location, city):
+    """Get place details from Google Maps API"""
+    if not GOOGLE_MAPS_API_KEY:
+        return None
+    
+    query = f"{location}, {city}"
+    url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    params = {
+        "input": query,
+        "inputtype": "textquery",
+        "fields": "place_id,name,formatted_address,geometry",
+        "key": GOOGLE_MAPS_API_KEY
+    }
+    
+    try:
+        data = await fetch(session, "GET", url, params=params)
+        candidates = data.get("candidates", [])
+        if candidates:
+            return candidates[0]
+    except Exception as e:
+        print(f"Google Maps API error: {e}")
+    
+    return None
+
+async def get_google_maps_link_with_api(session, location, city):
+    """Get Google Maps link using API for better accuracy"""
+    place_details = await get_place_details(session, location, city)
+    
+    if place_details:
+        place_id = place_details.get("place_id")
+        if place_id:
+            return f"https://www.google.com/maps/place/?q=place_id:{place_id}"
+        
+        # Fallback to coordinates if available
+        geometry = place_details.get("geometry", {})
+        location_data = geometry.get("location", {})
+        if location_data:
+            lat = location_data.get("lat")
+            lng = location_data.get("lng")
+            if lat and lng:
+                return f"https://www.google.com/maps/@{lat},{lng},15z"
+    
+    # Final fallback to search URL
+    query = f"{location}, {city}".replace(" ", "+")
+    return f"https://www.google.com/maps/search/{query}"
+
 @lru_cache(maxsize=128)
 def get_google_maps_link(location, city):
+    """Cached fallback function for simple maps links"""
     query = f"{location}, {city}".replace(" ", "+")
     return f"https://www.google.com/maps/search/{query}"
 
@@ -258,68 +306,6 @@ async def generate_itinerary_response(user_input):
         try:
             raw_json = json_match.group(0)
             parsed = json.loads(raw_json)
-            return await enrich_with_maps(parsed)
-        except Exception as e:
-            return {"error": f"JSON parse failed: {str(e)}", "raw_response": raw_json}
-    else:
-        return {"error": "No valid JSON found", "raw_response": streamed[:300]}
-
-async def enrich_with_maps(parsed_data):
-    itinerary = parsed_data.get("itinerary", {})
-    city = itinerary.get("destination", "Tokyo")
-    duration = itinerary.get("duration", 1)
-    image_url = f"https://picsum.photos/seed/{city}/1200/800"
-
-    response = {
-        "status": "success",
-        "travel_plan": {
-            "destination": city,
-            "duration_days": duration,
-            "summary": f"{duration}-day cultural itinerary for {city}",
-            "travel_image": image_url,
-            "days": []
-        }
-    }
-
-    default_times = ["09:00", "11:30", "13:00", "14:30", "16:30", "19:00"]
-
-    for day in itinerary.get("days", []):
-        activities = []
-        day_activities = day.get("activities", day.get("items", []))
-        
-        for i, act in enumerate(day_activities):
-            location = act.get("location") or act.get("name", "Unknown")
-            time = act.get("time")
-            if not time or time == "TBD":
-                time = default_times[i] if i < len(default_times) else f"{9 + i * 2}:00"
-            
-            activities.append({
-                "time": time,
-                "location": {
-                    "name": location,
-                    "maps_link": get_google_maps_link(location, city),
-                    "address": f"{location}, {city}"
-                },
-                "category": act.get("category", "general"),
-                "description": act.get("description", act.get("name", "")),
-                "cultural_connection": act.get("cultural_connection", ""),
-                "category_icon": {
-                    "music": "🎵", "film": "🎬", "fashion": "👗",
-                    "dining": "🍽️", "hidden_gem": "💎"
-                }.get(act.get("category", ""), "📍")
-            })
-        response["travel_plan"]["days"].append({
-            "day_number": day.get("day", 1),
-            "theme": day.get("theme", "Cultural day"),
-            "activities": activities
-        })
-    return response
-    # Extract valid JSON only
-    json_match = re.search(r'\{[\s\S]*\}', streamed)
-    if json_match:
-        try:
-            raw_json = json_match.group(0)
-            parsed = json.loads(raw_json)
             final_response = await enrich_with_maps(parsed)
             
             print(f"\n=== FINAL RESPONSE CHECK ===")
@@ -354,39 +340,40 @@ async def enrich_with_maps(parsed_data):
         }
     }
 
-    # Default time slots if AI doesn't provide them
     default_times = ["09:00", "11:30", "13:00", "14:30", "16:30", "19:00"]
 
-    for day in itinerary.get("days", []):
-        activities = []
-        day_activities = day.get("activities", day.get("items", []))
-        
-        for i, act in enumerate(day_activities):
-            location = act.get("location") or act.get("name", "Unknown")
-            # Use provided time or fallback to default time slots
-            time = act.get("time")
-            if not time or time == "TBD":
-                time = default_times[i] if i < len(default_times) else f"{9 + i * 2}:00"
+    async with aiohttp.ClientSession() as session:
+        for day in itinerary.get("days", []):
+            activities = []
+            day_activities = day.get("activities", day.get("items", []))
             
-            activities.append({
-                "time": time,
-                "location": {
-                    "name": location,
-                    "maps_link": get_google_maps_link(location, city),
-                    "address": f"{location}, {city}"
-                },
-                "category": act.get("category", "general"),
-                "description": act.get("description", act.get("name", "")),
-                "cultural_connection": act.get("cultural_connection", ""),
-                "category_icon": {
-                    "music": "🎵", "film": "🎬", "fashion": "👗",
-                    "dining": "🍽️", "hidden_gem": "💎"
-                }.get(act.get("category", ""), "📍")
+            for i, act in enumerate(day_activities):
+                location = act.get("location") or act.get("name", "Unknown")
+                time = act.get("time")
+                if not time or time == "TBD":
+                    time = default_times[i] if i < len(default_times) else f"{9 + i * 2}:00"
+                
+                # Use Google Maps API for better location links
+                maps_link = await get_google_maps_link_with_api(session, location, city)
+                
+                activities.append({
+                    "time": time,
+                    "location": {
+                        "name": location,
+                        "maps_link": maps_link,
+                        "address": f"{location}, {city}"
+                    },
+                    "category": act.get("category", "general"),
+                    "description": act.get("description", act.get("name", "")),
+                    "cultural_connection": act.get("cultural_connection", ""),
+                    "category_icon": {
+                        "music": "🎵", "film": "🎬", "fashion": "👗",
+                        "dining": "🍽️", "hidden_gem": "💎"
+                    }.get(act.get("category", ""), "📍")
+                })
+            response["travel_plan"]["days"].append({
+                "day_number": day.get("day", 1),
+                "theme": day.get("theme", "Cultural day"),
+                "activities": activities
             })
-        response["travel_plan"]["days"].append({
-            "day_number": day.get("day", 1),
-            "theme": day.get("theme", "Cultural day"),
-            "activities": activities
-        })
-    return response
     return response

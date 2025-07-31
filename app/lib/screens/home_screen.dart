@@ -1,5 +1,6 @@
 import 'package:app/auth/google_auth.dart';
 import 'package:app/models/travel_model.dart';
+import 'package:app/screens/login_screen.dart';
 import 'package:app/screens/travel_plan_screen.dart';
 import 'package:app/screens/prompt_screen.dart';
 import 'package:app/db/db_func.dart';
@@ -348,6 +349,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   _buildSidebarItem(Icons.logout, 'Sign Out', true, () {
                     signOutGoogle();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                    );
                   }),
                 ],
               ),

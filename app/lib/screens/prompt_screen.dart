@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/apis/api_func.dart';
 import 'package:app/db/db_func.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
 class PromptScreen extends StatefulWidget {
@@ -472,17 +473,21 @@ class _PromptScreenState extends State<PromptScreen>
           if (saved) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Travel plan generated and saved successfully!'),
+                content: Text(
+                  'Travel plan generated successfully! Reloading...',
+                ),
                 backgroundColor: Color(0xFF10B981),
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                duration: Duration(seconds: 2),
               ),
             );
 
-            // Return the generated travel plan to the home screen
-            Navigator.of(context).pop(travelPlan);
+            // Wait a moment for the snackbar to show, then restart the app
+            await Future.delayed(Duration(seconds: 2));
+            _restartApp();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -538,6 +543,15 @@ class _PromptScreenState extends State<PromptScreen>
         });
       }
     }
+  }
+
+  void _restartApp() {
+    // For Flutter apps, we can restart by exiting and letting the system restart
+    // or by navigating to root and clearing the stack
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/', // Assuming your home route is '/'
+      (route) => false,
+    );
   }
 
   Widget _buildBeautifulLoadingDialog() {
