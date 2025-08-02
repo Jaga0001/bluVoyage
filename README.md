@@ -12,7 +12,7 @@
 
 ## 🌟 Overview
 
-BluVoyage is an intelligent travel planning application that leverages artificial intelligence to create personalized, culturally-rich travel experiences. Built for the QLOO Hackathon, it combines the power of AI recommendations with local cultural insights to craft unique itineraries tailored to individual preferences.
+BluVoyage is an intelligent travel planning application that leverages artificial intelligence to create personalized, culturally-rich travel experiences. It combines the power of AI recommendations with local cultural insights to craft unique itineraries tailored to individual preferences.
 
 ### ✨ Key Features
 
