@@ -219,38 +219,15 @@ We welcome contributions! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Code Style Guidelines
-- Follow [Dart style guide](https://dart.dev/guides/language/effective-dart/style) for Flutter code
-- Use [Black](https://black.readthedocs.io/) for Python code formatting
-- Write meaningful commit messages
-- Add tests for new features
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🎯 Roadmap
-
-- [ ] **Multi-language Support**: Internationalization
-- [ ] **Collaborative Planning**: Share and edit plans with friends
-- [ ] **Expense Tracking**: Budget management features
-- [ ] **Weather Integration**: Weather-based recommendations
-- [ ] **AR Features**: Augmented reality city guides
-- [ ] **Social Features**: Share experiences and reviews
-
-
 ## 📞 Support
 
-For support, email [your-email@example.com] or create an issue in this repository.
+For support, email jagavanthaarunkumar@gmail.com or create an issue in this repository.
 
-## 🙏 Acknowledgments
-
-- **QLOO** for providing the cultural recommendations API
-- **Google** for Generative AI capabilities
-- **Firebase** for backend infrastructure
-- **Flutter Team** for the amazing framework
-
----
 
 <div align="center">
   <strong>Made with ❤️ for travelers who seek authentic cultural experiences</strong>

@@ -459,9 +459,39 @@ class _PromptScreenState extends State<PromptScreen>
     );
 
     try {
-      final travelPlan = await _apiFunc.generateItinerary(
-        _promptController.text.trim(),
-      );
+      // Retry logic with exponential backoff
+      dynamic travelPlan;
+      int maxRetries = 3;
+      int retryDelay = 1; // seconds
+
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          print('API call attempt $attempt/$maxRetries');
+
+          travelPlan = await _apiFunc
+              .generateItinerary(_promptController.text.trim())
+              .timeout(
+                Duration(seconds: 30), // 30 second timeout
+                onTimeout: () {
+                  throw Exception('Request timed out. Please try again.');
+                },
+              );
+
+          // If we get here, the call was successful
+          break;
+        } catch (e) {
+          print('Attempt $attempt failed: $e');
+
+          if (attempt == maxRetries) {
+            // Last attempt failed, rethrow the error
+            rethrow;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await Future.delayed(Duration(seconds: retryDelay));
+          retryDelay *= 2; // Double the delay for next attempt
+        }
+      }
 
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -506,7 +536,7 @@ class _PromptScreenState extends State<PromptScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Unable to connect to our servers. Please check your internet connection and try again.',
+                'Unable to generate travel plan. Please try again.',
               ),
               backgroundColor: Colors.orange,
               behavior: SnackBarBehavior.floating,
@@ -522,11 +552,22 @@ class _PromptScreenState extends State<PromptScreen>
       print('Error in _generateTravelPlan: $e');
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
+
+        String errorMessage;
+        if (e.toString().contains('timed out')) {
+          errorMessage =
+              'Request timed out. Please check your connection and try again.';
+        } else if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMessage = 'Something went wrong. Please try again in a moment.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Network error. Please check your connection and try again.',
-            ),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
